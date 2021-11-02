@@ -38,7 +38,7 @@ final class SpotlightViewController: UIViewController {
         super.viewWillAppear(animated)
         if spotlightNodes.count == 1 {
             backButton.isHidden = true
-            nextButton.isHidden = true
+			setNextButtonTitle(isDone: true)
         }
     }
 
@@ -46,7 +46,7 @@ final class SpotlightViewController: UIViewController {
         super.viewDidAppear(animated)
         nextSpotlight()
 
-        timer = Timer.scheduledTimer(timeInterval: Spotlight.delay, target: self, selector: #selector(nextSpotlight), userInfo: nil, repeats: true)
+        //timer = Timer.scheduledTimer(timeInterval: Spotlight.delay, target: self, selector: #selector(nextSpotlight), userInfo: nil, repeats: true)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -109,11 +109,20 @@ extension SpotlightViewController {
         currentNodeIndex -= 1
         showSpotlight()
     }
+	
+	func setNextButtonTitle(isDone: Bool) {
+		
+		if isDone {
+			self.nextButton.setTitle(Spotlight.quiteButtonTitle, for: [])
+		}else{
+			self.nextButton.setTitle(Spotlight.nextButtonTitle, for: [])
+		}
+	}
 
     func showSpotlight() {
         let node = spotlightNodes[currentNodeIndex]
 
-        nextButton.isHidden = (currentNodeIndex == spotlightNodes.count - 1)
+		setNextButtonTitle(isDone: (currentNodeIndex == spotlightNodes.count - 1))
         backButton.isHidden = (currentNodeIndex == 0)
 
         let targetRect: CGRect
@@ -131,19 +140,37 @@ extension SpotlightViewController {
 
         infoLabel.text = node.text
 
+		let spotlightPosition = delegate?.getSpotlightPosition(currentNodeIndex)
         // Animate the info box around if intersects with spotlight
         view.layoutIfNeeded()
         UIView.animate(withDuration: Spotlight.animationDuration, animations: { [weak self] in
             guard let this = self else { return }
-            if targetRect.intersects(this.infoStackView.frame) {
-                if this.infoStackTopConstraint.priority == .defaultLow {
-                    this.infoStackTopConstraint.priority = .defaultHigh
-                    this.infoStackBottomConstraint.priority = .defaultLow
-                } else {
-                    this.infoStackTopConstraint.priority = .defaultLow
-                    this.infoStackBottomConstraint.priority = .defaultHigh
-                }
-            }
+			
+			switch spotlightPosition {
+				
+				case .forceTop:
+					this.infoStackTopConstraint.priority = .defaultHigh
+					this.infoStackBottomConstraint.priority = .defaultLow
+					
+					break
+				case .forceBottom:
+					
+					this.infoStackTopConstraint.priority = .defaultLow
+					this.infoStackBottomConstraint.priority = .defaultHigh
+					break
+				case .default, .none:
+					
+					if targetRect.intersects(this.infoStackView.frame) {
+						if this.infoStackTopConstraint.priority == .defaultLow {
+							this.infoStackTopConstraint.priority = .defaultHigh
+							this.infoStackBottomConstraint.priority = .defaultLow
+						} else {
+							this.infoStackTopConstraint.priority = .defaultLow
+							this.infoStackBottomConstraint.priority = .defaultHigh
+						}
+					}
+			}
+			
             this.view.layoutIfNeeded()
         })
     }
